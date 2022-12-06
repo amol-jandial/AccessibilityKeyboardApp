@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AccessibilityKeyboardApp</string>
+    <string name="app_title">AccessibilityKeyboard</string>
+    <string name="app_settings">KeyboardAppSettings</string>
+</resources>
