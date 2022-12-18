@@ -1,28 +1,46 @@
 package com.example.accessibilitykeyboardapp;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
-public class KeyboardIME extends InputMethodService implements KeyboardView.OnKeyboardActionListener {
+import java.security.Key;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class KeyboardIME extends InputMethodService implements KeyboardView.OnKeyboardActionListener
+         {
 
     private CustomKeyboardView kv;
     private Keyboard keyboard;
-    private boolean caps = false;
-
+    String pasteData = "";
+//             ClipboardManager.OnPrimaryClipChangedListener
     @Override
     public View onCreateInputView() {
         kv = (CustomKeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
         keyboard = new Keyboard(this, R.xml.qwerty_layout);
         kv.setKeyboard(keyboard);
         kv.setOnKeyboardActionListener(this);
+
+//        ClipboardManager clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+//        clipBoard.addPrimaryClipChangedListener(this);
+//        clipboard();
         return kv;
     }
 
-    @Override
+
+
+             @Override
     public void onPress(int primaryCode) {
 
     }
@@ -38,37 +56,68 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
         switch(primaryCode){
             case Keyboard.KEYCODE_DELETE :
-                ic.deleteSurroundingText(1, 0);
+                kv.deleteText(ic);
                 break;
             case Keyboard.KEYCODE_SHIFT:
-                caps = !caps;
-                keyboard.setShifted(caps);
-                kv.invalidateAllKeys();
+                kv.setShifted(keyboard);
                 break;
             case Keyboard.KEYCODE_DONE:
-                ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                kv.enter(ic);
                 break;
 
             default:
-                char code = (char)primaryCode;
-                if(Character.isLetter(code) && caps){
-                    code = Character.toUpperCase(code);
-                }
+
                 if(primaryCode == 10001){
-                    Keyboard keyboard = new Keyboard(this, R.xml.number_symbols_layout);
-                    kv.setKeyboard(keyboard);
-                    kv.invalidateAllKeys();
+                   kv.changeKeyboardLayout(R.xml.number_symbols_layout);
                 }
                 else if(primaryCode == 10002){
-                    Keyboard keyboard = new Keyboard(this, R.xml.qwerty_layout);
-                    kv.setKeyboard(keyboard);
-                    kv.invalidateAllKeys();
+                    kv.changeKeyboardLayout(R.xml.qwerty_layout);
                 }
+//                else if(primaryCode == 10004){
+//                    ic.commitText(pasteData, 1);
+//                    ClipData clip = ClipData.newPlainText("","");
+//                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+//                    clipboardManager.setPrimaryClip(clip);
+//                    Keyboard currentKeyboard = kv.getKeyboard();
+//                    List<Keyboard.Key> keys = currentKeyboard.getKeys();
+//                    Log.d("clipboard bitch", "clipboard: ");
+//
+//                    for(Keyboard.Key key : keys){
+//                        if(key.label.equals(pasteData)){
+//                            key.label = "";
+//                            pasteData = "";
+//                            kv.invalidateAllKeys();
+//                        }
+//                    }
+//                }
                 else{
-                    ic.commitText(String.valueOf(code),1);
+                    kv.publishText(ic, primaryCode);
                 }
         }
     }
+
+//    private void clipboard(){
+//        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+//        ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
+//        pasteData = (String) item.getText();
+//        Keyboard currentKeyboard = kv.getKeyboard();
+//        List<Keyboard.Key> keys = currentKeyboard.getKeys();
+//        Log.d("clipboard bitch", "clipboard Data: "+pasteData);
+//
+//        for(Keyboard.Key key : keys){
+//            if(key.label.equals("")){
+//                key.label = pasteData;
+//                kv.invalidateAllKeys();
+//            }
+//        }
+//
+//    }
+
+
+
+
+
+
 
     @Override
     public void onText(CharSequence text) {
@@ -94,4 +143,10 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     public void swipeUp() {
 
     }
+
+//    @Override
+//    public void onPrimaryClipChanged() {
+//        Log.d("clipboard", "onPrimaryClipChanged: ");
+//        clipboard();
+//    }
 }
