@@ -3,28 +3,36 @@ package com.example.accessibilitykeyboardapp;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 
-import java.util.List;
+import androidx.appcompat.widget.AppCompatButton;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class KeyboardIME extends InputMethodService implements KeyboardView.OnKeyboardActionListener,
-        View.OnClickListener, ClipboardManager.OnPrimaryClipChangedListener {
+        View.OnClickListener, ClipboardManager.OnPrimaryClipChangedListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     String pasteData = "";
     private CustomKeyboardView kv;
+    private int isLetterPressed = 0;
+    private boolean firstShiftPressed = false;
     private Keyboard keyboard;
-    private Button btn;
-
+    private AppCompatButton btn;
     private CandidateView mCandidateView;
+    SharedPreferences prefs;
+    private static final String TAG  = "bitches";
+    private boolean spaceAfterDot;
 
     @Override
     public View onCreateInputView() {
@@ -32,27 +40,66 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         keyboard = new Keyboard(this, R.xml.qwerty_layout);
         kv.setKeyboard(keyboard);
         kv.setOnKeyboardActionListener(this);
+        kv.setPreviewEnabled(false);
+        Log.d(TAG, "onCreateInputView: ");
 
         ClipboardManager clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         clipBoard.addPrimaryClipChangedListener(this);
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(this);
+
         return kv;
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.d(TAG, "onSharedPreferenceChanged: ");
+    }
+
+    @Override
+    public void onStartInputView(EditorInfo info, boolean restarting) {
+
+        if(prefs.getBoolean("auto_cap", true)){
+            isLetterPressed = 0;
+            firstShiftPressed = false;
+            kv.setShifted(keyboard);
+        }else{
+            isLetterPressed = -1;
+            firstShiftPressed = true;
+        }
+
+        if(prefs.getBoolean("theme_blue", true)){
+            kv.setTheme("blue");
+        }
+        else if(prefs.getBoolean("theme_orange", false)){
+            kv.setTheme("orange");
+        }else{
+            kv.setTheme("blue");
+        }
+
+        spaceAfterDot = prefs.getBoolean("auto_space", false);
+
+
     }
 
     @Override
     public View onCreateCandidatesView() {
         View wordBar = (LinearLayout) getLayoutInflater().inflate(R.layout.wordbar, null);
         LinearLayout ll = (LinearLayout) wordBar.findViewById(R.id.wordsLayout);
-        btn = (Button) wordBar.findViewById(R.id.clipboard_button);
+        btn = wordBar.findViewById(R.id.clipboard_button);
         btn.setOnClickListener(this);
-        mCandidateView = new CandidateView(this);
-        mCandidateView.setService(this);
+//        Log.d(TAG, "onCreateCandidatesView: ");
+//        mCandidateView = new CandidateView(this);
+//        mCandidateView.setService(this);
         setCandidatesViewShown(true);
-        mCandidateView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
-        ll.addView(mCandidateView);
+//        mCandidateView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+//                LinearLayout.LayoutParams.WRAP_CONTENT));
+//        ll.addView(mCandidateView);
         clipboard();
         return ll;
     }
+
+
 
     @Override
     public void onComputeInsets(Insets outInsets) {
@@ -69,7 +116,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public void onRelease(int primaryCode) {
-
+//        popupWindow.release();
     }
 
     @Override
@@ -94,26 +141,21 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
                 } else if (primaryCode == 10002) {
                     kv.changeKeyboardLayout(R.xml.qwerty_layout);
                 }
-//                else if(primaryCode == 10004){
-//                    ic.commitText(pasteData, 1);
-//                    ClipData clip = ClipData.newPlainText("","");
-//                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-//                    clipboardManager.setPrimaryClip(clip);
-//                    Keyboard currentKeyboard = kv.getKeyboard();
-//                    List<Keyboard.Key> keys = currentKeyboard.getKeys();
-//                    Log.d("clipboard bitch", "clipboard: ");
-//
-//                    for(Keyboard.Key key : keys){
-//                        if(key.label.equals(pasteData)){
-//                            key.label = "";
-//                            pasteData = "";
-//                            kv.invalidateAllKeys();
-//                        }
-//                    }
-//                }
-                else {
-                    kv.publishText(ic, primaryCode);
+                else if(primaryCode == 10003){
+                    kv.changeKeyboardLayout(R.xml.symbols_layout);
                 }
+                else if (primaryCode == 10005) {
+                    kv.changeKeyboardLayout(R.xml.number_symbols_layout);
+                }
+                else {
+                    isLetterPressed = kv.publishText(ic, primaryCode, keyboard, firstShiftPressed, spaceAfterDot);
+                }
+        }
+        if(isLetterPressed == 1 && !firstShiftPressed){
+            Log.d("shifting", "shifted to not shifted");
+            kv.setShifted(keyboard);
+            isLetterPressed = -1;
+            firstShiftPressed = true;
         }
     }
 
@@ -123,7 +165,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
         Log.d("bitches", "clipboard: "+ item.getText());
         if(item.getText() != null){
-            btn.setText(item.getText());
+            btn.setText(item.getText().toString());
         }
     }
 
@@ -155,13 +197,15 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public void onClick(View v) {
-        Button btn = (Button) v;
+        //To remove visibility make the drawable background containing icon and background
+        AppCompatButton btn = (AppCompatButton) v;
+
         String text = (String) btn.getText();
+
         getCurrentInputConnection().commitText(text, 1);
         ClipData clip = ClipData.newPlainText("","");
         ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         clipboardManager.setPrimaryClip(clip);
-        btn.setVisibility(View.GONE);
     }
 
     @Override

@@ -2,7 +2,7 @@
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
     android:keyWidth="9%p"
     android:verticalGap="2%p"
-    android:keyHeight="7%p"
+    android:keyHeight="6%p"
 
     >
 
@@ -10,17 +10,26 @@
 
     <Row android:rowEdgeFlags="top">
         <Key android:keyWidth="9%p" android:codes="0x0071" android:horizontalGap = "0.9%p" android:keyLabel="\u0071"
-            android:keyEdgeFlags="left"/>
-        <Key android:keyWidth="9%p" android:codes="0x0077" android:horizontalGap = "0.9%p" android:keyLabel="\u0077"/>
-        <Key android:keyWidth="9%p" android:codes="0x0065" android:horizontalGap = "0.9%p" android:keyLabel="\u0065"/>
-        <Key android:keyWidth="9%p" android:codes="0x0072" android:horizontalGap = "0.9%p" android:keyLabel="\u0072"/>
-        <Key android:keyWidth="9%p" android:codes="0x0074" android:horizontalGap = "0.9%p" android:keyLabel="\u0074"/>
-        <Key android:keyWidth="9%p" android:codes="0x0079" android:horizontalGap = "0.9%p" android:keyLabel="\u0079"/>
-        <Key android:keyWidth="9%p" android:codes="0x0075" android:horizontalGap = "0.9%p" android:keyLabel="\u0075"/>
-        <Key android:keyWidth="9%p" android:codes="0x0069" android:horizontalGap = "0.9%p" android:keyLabel="\u0069"/>
-        <Key android:keyWidth="9%p" android:codes="0x006F" android:horizontalGap = "0.9%p" android:keyLabel="\u006F"/>
+            android:keyEdgeFlags="left" android:popupCharacters="1" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0077" android:horizontalGap = "0.9%p" android:keyLabel="\u0077"
+            android:popupCharacters="2" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0065" android:horizontalGap = "0.9%p" android:keyLabel="\u0065"
+            android:popupCharacters="3" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0072" android:horizontalGap = "0.9%p" android:keyLabel="\u0072"
+            android:popupCharacters="4" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0074" android:horizontalGap = "0.9%p" android:keyLabel="\u0074"
+            android:popupCharacters="5" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0079" android:horizontalGap = "0.9%p" android:keyLabel="\u0079"
+            android:popupCharacters="6" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0075" android:horizontalGap = "0.9%p" android:keyLabel="\u0075"
+            android:popupCharacters="7" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x0069" android:horizontalGap ="0.9%p" android:keyLabel="\u0069"
+            android:popupCharacters="8" android:popupKeyboard="@xml/popup_keyboard"/>
+        <Key android:keyWidth="9%p" android:codes="0x006F" android:horizontalGap = "0.9%p" android:keyLabel="\u006F"
+            android:popupCharacters="9" android:popupKeyboard="@xml/popup_keyboard"/>
         <Key android:keyWidth="9%p" android:codes="0x0070" android:horizontalGap = "0.9%p" android:keyLabel="\u0070"
-            android:keyEdgeFlags="right"/>
+            android:keyEdgeFlags="right"
+            android:popupCharacters="0" android:popupKeyboard="@xml/popup_keyboard"/>
     </Row>
 
     <Row>
@@ -52,10 +61,11 @@
     <Row android:rowEdgeFlags="bottom">
         <Key android:keyWidth="14.45%p" android:horizontalGap = "0.9%p" android:codes="10001" android:keyLabel="\?123"
             android:keyEdgeFlags="left"/>
-        <Key android:keyWidth="9%p" android:horizontalGap = "0.9%p" android:codes="47" android:keyLabel="E"/>
         <Key android:keyWidth="9%p" android:horizontalGap = "0.9%p" android:codes="44" android:keyLabel=","
             android:isRepeatable="true"/>
-        <Key android:keyWidth="38.8%p" android:horizontalGap = "0.9%p" android:codes="32" android:keyLabel="Space"
+        <Key android:keyWidth="9%p" android:horizontalGap = "0.9%p" android:codes="10004"
+            android:keyIcon="@drawable/emoji_icon"/>
+        <Key android:keyWidth="38.8%p" android:horizontalGap = "0.9%p" android:codes="32"
             android:isRepeatable="true"/>
         <Key android:keyWidth="9%p" android:horizontalGap = "0.9%p" android:codes="46" android:keyLabel="."
             android:isRepeatable="true"/>

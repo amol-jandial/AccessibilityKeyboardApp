@@ -57,7 +57,7 @@ public class CandidateView extends View {
         });
         Resources r = context.getResources();
 
-//        setBackgroundColor(r.getColor(R.color.candidate_background));
+        setBackgroundColor(r.getColor(R.color.black));
 
         mColorNormal = r.getColor(R.color.candidate_normal);
         mColorRecommended = r.getColor(R.color.candidate_recommended);

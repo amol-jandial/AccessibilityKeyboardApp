@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popup_keyboard_viewgroup"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <com.example.accessibilitykeyboardapp.CustomKeyboardView
+        android:id="@android:id/keyboardView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:keyTextColor="@color/white"
+        android:background="#00000000"
+        android:keyBackground="@drawable/popup_background"
+        android:keyTextSize="22sp"/>
+
+</LinearLayout>

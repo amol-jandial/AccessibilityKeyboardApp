@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="General">
+        <SwitchPreference android:title="Auto-Capital"
+            android:key="auto_cap"
+            android:defaultValue="true"/>
+        <SwitchPreference android:title="Auto-Space"
+            android:key="auto_space"
+            android:defaultValue="false"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Themes">
+        <SwitchPreference android:title="Blue Theme"
+            android:key="theme_blue"
+            android:defaultValue="true"/>
+        <SwitchPreference android:title="Orange Theme"
+            android:key="theme_orange"
+            android:defaultValue="false"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>
