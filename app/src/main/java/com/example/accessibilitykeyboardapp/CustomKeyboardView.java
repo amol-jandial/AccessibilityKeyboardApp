@@ -46,7 +46,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         super.onDraw(canvas);
         Paint paint = new Paint();
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(20);
+        paint.setTextSize(30);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         paint.setColor(ResourcesCompat.getColor(getResources(), R.color.number_on_top, null));
         List<Keyboard.Key> keys = getKeyboard().getKeys();
@@ -130,9 +130,10 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
                     npd.setBounds(key.x, key.y, key.x + key.width, key.y + key.height);
                     npd.draw(canvas);
                     paint.setColor(ResourcesCompat.getColor(getResources(), R.color.keyboard_text, null));
-                    paint.setTextSize(30);
+                    paint.setTextSize(50);
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                    canvas.drawText(key.label.toString(), key.x + (key.width / 2), key.y + (key.height / 2) + 10, paint);
+                    canvas.drawText(key.label.toString(), key.x + (key.width / 2), key.y + (key.height / 2) + 20,
+                            paint);
                 }
 
                 if (key.codes[0] == (Integer.parseInt("u0071".substring(2), 16)) ||
@@ -147,7 +148,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
                         key.codes[0] == (Integer.parseInt("u0070".substring(2), 16))
                 ) {
 
-                    canvas.drawText(key.popupCharacters.toString(), key.x + (key.width - 10), key.y + 20, paint);
+                    canvas.drawText(key.popupCharacters.toString(), key.x + (key.width - 15), key.y + 25, paint);
                 }
             }
         }
