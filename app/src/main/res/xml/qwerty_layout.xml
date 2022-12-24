@@ -6,8 +6,6 @@
 
     >
 
-
-
     <Row android:rowEdgeFlags="top">
         <Key android:keyWidth="9%p" android:codes="0x0071" android:horizontalGap = "0.9%p" android:keyLabel="\u0071"
             android:keyEdgeFlags="left" android:popupCharacters="1" android:popupKeyboard="@xml/popup_keyboard"/>

@@ -1,191 +1,133 @@
 package com.example.accessibilitykeyboardapp;
 
-import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
-import android.media.MediaRecorder;
-import android.os.Build;
-import android.os.Bundle;
+import android.net.Uri;
 import android.preference.PreferenceManager;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
-import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Locale;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
+import java.io.IOException;
 
 public class KeyboardIME extends InputMethodService implements KeyboardView.OnKeyboardActionListener,
         View.OnClickListener, ClipboardManager.OnPrimaryClipChangedListener,
         SharedPreferences.OnSharedPreferenceChangeListener {
 
+    private static final String TAG = "bitches";
     String pasteData = "";
-    private CustomKeyboardView kv;
-    private int isLetterPressed = 0;
-    private boolean firstShiftPressed = false;
-    private Keyboard keyboard;
-    private AppCompatButton btn, btnVoice, btnVoicePressed;
-    private TextView speechTextView;
-    private CandidateView mCandidateView;
     SharedPreferences prefs;
-    private static final String TAG  = "bitches";
-    private boolean spaceAfterDot;
-    private SpeechRecognizer speechRecognizer;
-    public static final Integer RecordAudioRequestCode = 1;
-    private Intent speechRecognizerIntent;
     View toolBar;
     ConstraintLayout cl;
-
-
+    private CustomKeyboardView kv;
+    private Keyboard keyboard;
+    private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard;
+    private TextView speechTextView;
+    private CandidateView mCandidateView;
+    private boolean spaceAfterDot;
+    private SpeechImplementation speechImplementation;
+    private ImageImplementation imageImplementation;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate: START");
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this, ComponentName.unflattenFromString("com.google.android.googlequicksearchbox/com.google.android.voicesearch.serviceapi.GoogleRecognitionService"));
-        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        Log.d(TAG, "onCreate: END");
-
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle params) {
-                Log.d(TAG, "onReadyForSpeech: ");
-                speechTextView.setText("Speak Now");
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-                Log.d(TAG, "onBeginningOfSpeech: ");
-                speechTextView.setText("Listening...");
-
-            }
-
-            @Override
-            public void onRmsChanged(float rmsdB) {
-
-            }
-
-            @Override
-            public void onBufferReceived(byte[] buffer) {
-
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-                Log.d(TAG, "onEndOfSpeech: ");
-                speechTextView.setText("Speak Now");
-            }
-
-            @Override
-            public void onError(int error) {
-
-            }
-
-            @Override
-            public void onResults(Bundle results) {
-                Log.d(TAG, "onResults: ");
-                ArrayList<String> data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                getCurrentInputConnection().commitText(data.get(0), 1);
-                speechRecognizer.startListening(speechRecognizerIntent);
-            }
-
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-
-            }
-
-            @Override
-            public void onEvent(int eventType, Bundle params) {
-
-            }
-        });
+        imageImplementation = new ImageImplementation(this);
     }
 
     @Override
     public View onCreateInputView() {
+        setupKeyboard();
+        setupClipboard();
+        setupPrefrences();
+        return kv;
+    }
+
+    private void setupKeyboard() {
         kv = (CustomKeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
         keyboard = new Keyboard(this, R.xml.qwerty_layout);
         kv.setKeyboard(keyboard);
         kv.setOnKeyboardActionListener(this);
         kv.setPreviewEnabled(false);
-        Log.d(TAG, "onCreateInputView: ");
-
-        ClipboardManager clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-        clipBoard.addPrimaryClipChangedListener(this);
-        prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        prefs.registerOnSharedPreferenceChangeListener(this);
-
-        return kv;
     }
 
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.d(TAG, "onSharedPreferenceChanged: ");
+    private void setupClipboard() {
+        ClipboardManager clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clipBoard.addPrimaryClipChangedListener(this);
+    }
+
+    private void setupPrefrences() {
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onStartInputView(EditorInfo info, boolean restarting) {
+        Log.d(TAG, "onStartInputView: ");
+        setupPreferencesSettings();
+    }
 
-        if(prefs.getBoolean("auto_cap", true)){
-            isLetterPressed = 0;
-            firstShiftPressed = false;
-            kv.setShifted(keyboard);
-        }else{
-            isLetterPressed = -1;
-            firstShiftPressed = true;
-        }
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 
-        if(prefs.getBoolean("theme_blue", true)){
+    }
+
+    private void setupPreferencesSettings(){
+
+
+        if (prefs.getBoolean("theme_blue", true)) {
             kv.setTheme("blue");
-        }
-        else if(prefs.getBoolean("theme_orange", false)){
+        } else if (prefs.getBoolean("theme_orange", false)) {
             kv.setTheme("orange");
-        }else{
+        } else {
             kv.setTheme("blue");
         }
 
         spaceAfterDot = prefs.getBoolean("auto_space", false);
 
-
     }
+
+
 
     @Override
     public View onCreateCandidatesView() {
-        toolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.toolbar, null);
-        cl = (ConstraintLayout) toolBar.findViewById(R.id.toolbar_layout);
+
+        cl = setmCandidateView("toolbar", R.id.toolbar_layout);
         setCandidatesViewShown(true);
         btnVoice = cl.findViewById(R.id.btn_voice);
+        btnImage = cl.findViewById(R.id.btn_img);
+        btnClipboard = cl.findViewById(R.id.btn_clipboard);
         setListeners();
         return cl;
     }
 
     private void setListeners() {
         btnVoice.setOnClickListener(this);
+        btnImage.setOnClickListener(this);
+        btnClipboard.setOnClickListener(this);
     }
-
-
 
 
     @Override
@@ -194,16 +136,6 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         if (!isFullscreenMode()) {
             outInsets.contentTopInsets = outInsets.visibleTopInsets;
         }
-    }
-
-    @Override
-    public void onPress(int primaryCode) {
-
-    }
-
-    @Override
-    public void onRelease(int primaryCode) {
-//        popupWindow.release();
     }
 
     @Override
@@ -224,38 +156,135 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
             default:
 
                 if (primaryCode == 10001) {
-                    kv.changeKeyboardLayout(R.xml.number_symbols_layout);
+                    kv.changeKeyboardLayout(R.xml.number_symbols_layout, this);
+
                 } else if (primaryCode == 10002) {
-                    kv.changeKeyboardLayout(R.xml.qwerty_layout);
-                }
-                else if(primaryCode == 10003){
-                    kv.changeKeyboardLayout(R.xml.symbols_layout);
-                }
-                else if (primaryCode == 10005) {
-                    kv.changeKeyboardLayout(R.xml.number_symbols_layout);
-                }
-                else {
-                    isLetterPressed = kv.publishText(ic, primaryCode, keyboard, firstShiftPressed, spaceAfterDot);
+                    kv.changeKeyboardLayout(R.xml.qwerty_layout, this);
+
+                } else if (primaryCode == 10003) {
+                    kv.changeKeyboardLayout(R.xml.symbols_layout, this);
+
+                } else if (primaryCode == 10005) {
+                    kv.changeKeyboardLayout(R.xml.number_symbols_layout, this);
+
+                } else {
+                    kv.publishText(ic, primaryCode, keyboard, spaceAfterDot);
                 }
         }
-        if(isLetterPressed == 1 && !firstShiftPressed){
-            Log.d("shifting", "shifted to not shifted");
-            kv.setShifted(keyboard);
-            isLetterPressed = -1;
-            firstShiftPressed = true;
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        //To remove visibility make the drawable background containing icon and background
+        AppCompatButton btn = (AppCompatButton) v;
+        switch (btn.getId()) {
+            case R.id.btn_voice:
+                activateVoice();
+                break;
+
+            case R.id.clipboard_button:
+                activateClipboard(btn);
+                break;
+
+            case R.id.btn_speech_clicked:
+                speechImplementation.end();
+                setmCandidateView("toolbar", R.id.toolbar_layout);
+                break;
+
+            case R.id.btn_img:
+                imageImplementation.checkPermissions();
+                imageImplementation.start(getCurrentInputConnection());
+                break;
+
+            case R.id.btn_clipboard:
+                ConstraintLayout ccl = setmCandidateView("wordbar", R.id.wordsLayout);
+                btnClipboardPressed = ccl.findViewById(R.id.clipboard_button);
+                clipboard();
+        }
+
+    }
+
+
+    private void activateVoice() {
+        ConstraintLayout scl = setmCandidateView("speech_toolbar", R.id.speech_toolbar);
+        speechImplementation = new SpeechImplementation(this, getCurrentInputConnection(), speechTextView, scl);
+        speechImplementation.checkPermissions(this);
+        AppCompatButton speechPressBtn = speechImplementation.start();
+        speechPressBtn.setOnClickListener(this);
+    }
+
+    private ConstraintLayout setmCandidateView(String res, int id) {
+
+        View toolBar = (ConstraintLayout) getLayoutInflater().inflate(getResources().getIdentifier(res, "layout",
+                        this.getPackageName()),
+                null);
+        ConstraintLayout cl = (ConstraintLayout) toolBar.findViewById(id);
+        setCandidatesView(cl);
+        return cl;
+    }
+
+    @Override
+    public void onFinishInputView(boolean finishingInput) {
+        if(speechImplementation != null){
+            speechImplementation.destroy();
         }
     }
 
-    private void clipboard(){
-       btn.setVisibility(View.VISIBLE);
+
+
+    private void clipboard() {
         ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-        Log.d("bitches", "clipboard: "+ item.getText());
-        if(item.getText() != null){
-            btn.setText(item.getText().toString());
-        }
+        Uri image = Uri.parse(item.getText().toString());
+        decodeImage(image);
     }
 
+    private void decodeImage(Uri imageURI){
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        InputImage image;
+        try{
+            image = InputImage.fromFilePath(this, imageURI);
+            Task<Text> result = recognizer.process(image).addOnSuccessListener(new OnSuccessListener<Text>() {
+                @Override
+                public void onSuccess(Text text) {
+                    String resulText = text.getText();
+                    getCurrentInputConnection().commitText(resulText, 1);
+//                    Log.d(TAG, "onSuccess: Result: "+resulText);
+//                    for (Text.TextBlock block : text.getTextBlocks()) {
+//                        String blockText = block.getText();
+//                        Log.d(TAG, "onSuccess: Block : "+blockText);
+//                        Point[] blockCornerPoints = block.getCornerPoints();
+//                        Rect blockFrame = block.getBoundingBox();
+//                    }
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e(TAG, "onFailure: ", e);
+                }
+            });
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+
+
+    }
+
+    private void activateClipboard(AppCompatButton btn) {
+        String text = (String) btn.getText();
+        getCurrentInputConnection().commitText(text, 1);
+        ClipData clip = ClipData.newPlainText("", "");
+        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboardManager.setPrimaryClip(clip);
+    }
+
+    @Override
+    public void onPrimaryClipChanged() {
+        Log.d("clipboard", "onPrimaryClipChanged: ");
+//        clipboard();
+    }
 
     @Override
     public void onText(CharSequence text) {
@@ -283,71 +312,13 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     }
 
     @Override
-    public void onClick(View v) {
-        //To remove visibility make the drawable background containing icon and background
-        AppCompatButton btn = (AppCompatButton) v;
-        switch(btn.getId()){
-            case R.id.btn_voice:
-                activateVoice();
-                break;
+    public void onPress(int primaryCode) {
 
-            case R.id.clipboard_button:
-                activateClipboard(btn);
-                break;
-
-            case R.id.btn_speech_clicked:
-                speechRecognizer.stopListening();
-                setCandidatesView(cl);
-        }
-
-    }
-
-    private void activateVoice() {
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
-            checkPermission();
-        }
-        View speechToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.speech_toolbar, null);
-        ConstraintLayout cl = (ConstraintLayout) speechToolBar.findViewById(R.id.speech_toolbar);
-        setCandidatesView(cl);
-        speechTextView = cl.findViewById(R.id.tv_speech);
-        btnVoicePressed = cl.findViewById(R.id.btn_speech_clicked);
-        btnVoicePressed.setOnClickListener(this);
-        Log.d(TAG, "before start listening ");
-        speechRecognizer.startListening(speechRecognizerIntent);
-    }
-
-
-    @Override
-    public void onFinishInputView(boolean finishingInput) {
-        speechRecognizer.destroy();
-    }
-
-    private void checkPermission(){
-        Intent intent = new Intent(this, PermissionActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        KeyboardIME.this.startActivity(intent);
-    }
-
-    private void activateClipboard(AppCompatButton btn){
-        String text = (String) btn.getText();
-        getCurrentInputConnection().commitText(text, 1);
-        ClipData clip = ClipData.newPlainText("","");
-        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboardManager.setPrimaryClip(clip);
     }
 
     @Override
-    public void onPrimaryClipChanged() {
-        Log.d("clipboard", "onPrimaryClipChanged: ");
-//        clipboard();
+    public void onRelease(int primaryCode) {
+
     }
-
-
-
-
-
-
-
-
 
 }

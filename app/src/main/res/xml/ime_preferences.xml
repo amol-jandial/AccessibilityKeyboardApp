@@ -3,9 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory android:title="General">
-        <SwitchPreference android:title="Auto-Capital"
-            android:key="auto_cap"
-            android:defaultValue="true"/>
+
         <SwitchPreference android:title="Auto-Space"
             android:key="auto_space"
             android:defaultValue="false"/>

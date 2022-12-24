@@ -1,6 +1,9 @@
 package com.example.accessibilitykeyboardapp;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -13,7 +16,10 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputConnection;
+import android.widget.TextView;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 
 import java.util.List;
@@ -22,6 +28,8 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
     private boolean isShifted = false;
     private Drawable npd;
     private String theme;
+    private Keyboard keyboard;
+
 
 
     public CustomKeyboardView(Context context, AttributeSet attrs) {
@@ -41,6 +49,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         invalidateAllKeys();
     }
 
+
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -54,6 +63,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
             if (key.codes[0] == -1) {
                 if (isShifted) {
                     if (theme.equals("blue")) {
+
                         npd = (Drawable) getContext().getResources().getDrawable(R.drawable.shift_on_blue);
                     } else if (theme.equals("orange")) {
                         npd = (Drawable) getContext().getResources().getDrawable(R.drawable.shift_on_orange);
@@ -147,11 +157,11 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
                         key.codes[0] == (Integer.parseInt("u006F".substring(2), 16)) ||
                         key.codes[0] == (Integer.parseInt("u0070".substring(2), 16))
                 ) {
-
                     canvas.drawText(key.popupCharacters.toString(), key.x + (key.width - 15), key.y + 25, paint);
                 }
             }
-        }
+
+    }
 
 
     public void deleteText(InputConnection ic){
@@ -170,7 +180,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
     }
 
-    public int publishText(InputConnection ic, int primaryCode, Keyboard keyboard, boolean firstShiftPressed,
+    public int publishText(InputConnection ic, int primaryCode, Keyboard keyboard,
                            boolean spaceAfterDot){
         char code = (char)primaryCode;
         if((Character.isLetter(code) && isShifted)){
@@ -188,8 +198,8 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         return -1;
     }
 
-    public void changeKeyboardLayout(int layout){
-        Keyboard keyboard = new Keyboard(getContext(), layout);
+    public void changeKeyboardLayout(int layout, Context context){
+        keyboard = new Keyboard(context, layout);
         setKeyboard(keyboard);
         invalidateAllKeys();
     }
