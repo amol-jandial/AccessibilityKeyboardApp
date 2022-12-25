@@ -59,10 +59,13 @@ public class ImageGetterActivity extends AppCompatActivity {
         if(resultCode == RESULT_OK){
                 if(requestCode == REQ_CODE){
                     image =  data.getData();
-                    ClipData clip = ClipData.newPlainText("", image.toString());
-                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    clipboardManager.setPrimaryClip(clip);
-                    ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
+                    Intent serviceIntent = new Intent(this, KeyboardIME.class);
+                    serviceIntent.putExtra("imageURI", image);
+                    this.startService(serviceIntent);
+//                    ClipData clip = ClipData.newPlainText("", image.toString());
+//                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+//                    clipboardManager.setPrimaryClip(clip);
+//                    ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
 
                     finish();
                 }

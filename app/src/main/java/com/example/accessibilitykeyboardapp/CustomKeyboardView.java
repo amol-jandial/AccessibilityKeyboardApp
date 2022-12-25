@@ -198,12 +198,6 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         return -1;
     }
 
-    public void changeKeyboardLayout(int layout, Context context){
-        keyboard = new Keyboard(context, layout);
-        setKeyboard(keyboard);
-        invalidateAllKeys();
-    }
-
     private void commitText(InputConnection ic, String code, int pos){
         ic.commitText(code,pos);
     }

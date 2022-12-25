@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.TextView;
@@ -41,15 +42,16 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     String pasteData = "";
     SharedPreferences prefs;
     View toolBar;
-    ConstraintLayout cl;
+    ConstraintLayout tcl, icl, scl;
     private CustomKeyboardView kv;
-    private Keyboard keyboard;
+    private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard;
     private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard;
     private TextView speechTextView;
     private CandidateView mCandidateView;
     private boolean spaceAfterDot;
     private SpeechImplementation speechImplementation;
     private ImageImplementation imageImplementation;
+    private Uri imageUri = null;
 
     @Override
     public void onCreate() {
@@ -59,18 +61,47 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public View onCreateInputView() {
+        Log.d(TAG, "onCreateInputView: ");
         setupKeyboard();
         setupClipboard();
         setupPrefrences();
+        kv.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                Log.d(TAG, "onViewDetachedFromWindow: ");
+                stopForeground(true);
+                stopSelf();
+            }
+        });
         return kv;
+    }
+
+    
+
+    private void setupCandidateViews(){
+        View toolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.toolbar, null);
+        View speechToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.speech_toolbar, null);
+        View imageToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.image_processing_layout, null);
+
+        tcl = (ConstraintLayout) toolBar.findViewById(R.id.toolbar_layout);
+        scl = (ConstraintLayout) speechToolBar.findViewById(R.id.speech_toolbar);
+        icl = (ConstraintLayout) imageToolBar.findViewById(R.id.image_proc_toolbar);
     }
 
     private void setupKeyboard() {
         kv = (CustomKeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
-        keyboard = new Keyboard(this, R.xml.qwerty_layout);
-        kv.setKeyboard(keyboard);
+        qwertyKeyboard = new Keyboard(this, R.xml.qwerty_layout);
+        numberKeyboard = new Keyboard(this, R.xml.number_symbols_layout);
+        symbolKeyboard = new Keyboard(this, R.xml.symbols_layout);
+        kv.setKeyboard(qwertyKeyboard);
         kv.setOnKeyboardActionListener(this);
         kv.setPreviewEnabled(false);
+        currentKeyboard = qwertyKeyboard;
     }
 
     private void setupClipboard() {
@@ -85,8 +116,23 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public void onStartInputView(EditorInfo info, boolean restarting) {
-        Log.d(TAG, "onStartInputView: ");
+        Log.d(TAG, "onStartInputView: "+ btnVoice.getId());
+        if(imageUri != null){
+            decodeImage(imageUri);
+        }
         setupPreferencesSettings();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        imageUri = intent.getParcelableExtra("imageURI");
+        setCandidatesView(icl);
+        stopSelf();
+        //Start a background thread and while that thread is running change candidate view to processing...
+
+
+
+        return START_STICKY_COMPATIBILITY;
     }
 
     @Override
@@ -113,14 +159,14 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public View onCreateCandidatesView() {
+        setupCandidateViews();
 
-        cl = setmCandidateView("toolbar", R.id.toolbar_layout);
         setCandidatesViewShown(true);
-        btnVoice = cl.findViewById(R.id.btn_voice);
-        btnImage = cl.findViewById(R.id.btn_img);
-        btnClipboard = cl.findViewById(R.id.btn_clipboard);
+        btnVoice = tcl.findViewById(R.id.btn_voice);
+        btnImage = tcl.findViewById(R.id.btn_img);
+        btnClipboard = tcl.findViewById(R.id.btn_clipboard);
         setListeners();
-        return cl;
+        return tcl;
     }
 
     private void setListeners() {
@@ -128,6 +174,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnImage.setOnClickListener(this);
         btnClipboard.setOnClickListener(this);
     }
+
 
 
     @Override
@@ -147,7 +194,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
                 kv.deleteText(ic);
                 break;
             case Keyboard.KEYCODE_SHIFT:
-                kv.setShifted(keyboard);
+                kv.setShifted(currentKeyboard);
                 break;
             case Keyboard.KEYCODE_DONE:
                 kv.enter(ic);
@@ -156,19 +203,30 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
             default:
 
                 if (primaryCode == 10001) {
-                    kv.changeKeyboardLayout(R.xml.number_symbols_layout, this);
+                    kv.setKeyboard(numberKeyboard);
+                    currentKeyboard = numberKeyboard;
+                    kv.invalidateAllKeys();
 
                 } else if (primaryCode == 10002) {
-                    kv.changeKeyboardLayout(R.xml.qwerty_layout, this);
+                    kv.setKeyboard(qwertyKeyboard);
+                    currentKeyboard = qwertyKeyboard;
+                    kv.invalidateAllKeys();
+
 
                 } else if (primaryCode == 10003) {
-                    kv.changeKeyboardLayout(R.xml.symbols_layout, this);
+                    kv.setKeyboard(symbolKeyboard);
+                    currentKeyboard = symbolKeyboard;
+                    kv.invalidateAllKeys();
+
 
                 } else if (primaryCode == 10005) {
-                    kv.changeKeyboardLayout(R.xml.number_symbols_layout, this);
+                    kv.setKeyboard(numberKeyboard);
+                    currentKeyboard = numberKeyboard;
+                    kv.invalidateAllKeys();
+
 
                 } else {
-                    kv.publishText(ic, primaryCode, keyboard, spaceAfterDot);
+                    kv.publishText(ic, primaryCode, currentKeyboard, spaceAfterDot);
                 }
         }
 
@@ -189,55 +247,48 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
             case R.id.btn_speech_clicked:
                 speechImplementation.end();
-                setmCandidateView("toolbar", R.id.toolbar_layout);
+                setCandidatesView(tcl);
                 break;
 
             case R.id.btn_img:
+                Intent stopServiceIntent = new Intent(getApplicationContext(), KeyboardIME.class);
+                stopServiceIntent.addCategory(KeyboardIME.TAG);
+                stopService(stopServiceIntent);
                 imageImplementation.checkPermissions();
                 imageImplementation.start(getCurrentInputConnection());
                 break;
 
             case R.id.btn_clipboard:
-                ConstraintLayout ccl = setmCandidateView("wordbar", R.id.wordsLayout);
-                btnClipboardPressed = ccl.findViewById(R.id.clipboard_button);
-                clipboard();
+                decodeImage(imageUri);
+
         }
 
     }
 
-
     private void activateVoice() {
-        ConstraintLayout scl = setmCandidateView("speech_toolbar", R.id.speech_toolbar);
+        setCandidatesView(scl);
         speechImplementation = new SpeechImplementation(this, getCurrentInputConnection(), speechTextView, scl);
         speechImplementation.checkPermissions(this);
         AppCompatButton speechPressBtn = speechImplementation.start();
         speechPressBtn.setOnClickListener(this);
     }
 
-    private ConstraintLayout setmCandidateView(String res, int id) {
-
-        View toolBar = (ConstraintLayout) getLayoutInflater().inflate(getResources().getIdentifier(res, "layout",
-                        this.getPackageName()),
-                null);
-        ConstraintLayout cl = (ConstraintLayout) toolBar.findViewById(id);
-        setCandidatesView(cl);
-        return cl;
-    }
-
     @Override
     public void onFinishInputView(boolean finishingInput) {
+        Log.d(TAG, "onFinishInputView: ");
         if(speechImplementation != null){
             speechImplementation.destroy();
         }
+
     }
 
 
 
     private void clipboard() {
-        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-        Uri image = Uri.parse(item.getText().toString());
-        decodeImage(image);
+//        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+//        ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
+//        Uri image = Uri.parse(item.getText().toString());
+        decodeImage(imageUri);
     }
 
     private void decodeImage(Uri imageURI){
@@ -250,6 +301,8 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
                 public void onSuccess(Text text) {
                     String resulText = text.getText();
                     getCurrentInputConnection().commitText(resulText, 1);
+                    setCandidatesView(tcl);
+                    imageUri = null;
 //                    Log.d(TAG, "onSuccess: Result: "+resulText);
 //                    for (Text.TextBlock block : text.getTextBlocks()) {
 //                        String blockText = block.getText();
