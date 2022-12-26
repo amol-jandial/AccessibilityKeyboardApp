@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="60dp"
     android:background="@color/keyboard_background_blue"
     android:id="@+id/image_proc_toolbar"
     android:paddingVertical="8dp"
@@ -12,7 +12,7 @@
     <TextView
         android:id="@+id/tv_speech"
         android:layout_width="wrap_content"
-        android:layout_height="42dp"
+        android:layout_height="40dp"
         android:textColor="@color/keyboard_text"
         android:textSize="16sp"
         android:textStyle="bold"

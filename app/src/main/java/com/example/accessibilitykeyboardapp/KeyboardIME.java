@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,7 +27,16 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.mlkit.common.MlKitException;
+import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.common.model.RemoteModelManager;
 import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.digitalink.DigitalInkRecognition;
+import com.google.mlkit.vision.digitalink.DigitalInkRecognitionModel;
+import com.google.mlkit.vision.digitalink.DigitalInkRecognitionModelIdentifier;
+import com.google.mlkit.vision.digitalink.DigitalInkRecognizer;
+import com.google.mlkit.vision.digitalink.DigitalInkRecognizerOptions;
+import com.google.mlkit.vision.digitalink.Ink;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -42,16 +52,23 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     String pasteData = "";
     SharedPreferences prefs;
     View toolBar;
-    ConstraintLayout tcl, icl, scl;
+    ConstraintLayout tcl, icl, scl, dcl;
     private CustomKeyboardView kv;
-    private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard;
-    private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard;
+    private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard, drawingKeyboard;
+    private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard, btnDraw,
+    btnClassify, btnClear, btnBack;
     private TextView speechTextView;
     private CandidateView mCandidateView;
     private boolean spaceAfterDot;
     private SpeechImplementation speechImplementation;
     private ImageImplementation imageImplementation;
     private Uri imageUri = null;
+    private RemoteModelManager remoteModelManager = RemoteModelManager.getInstance();
+    private DigitalInkRecognitionModel model;
+
+
+
+
 
     @Override
     public void onCreate() {
@@ -87,10 +104,12 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         View toolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.toolbar, null);
         View speechToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.speech_toolbar, null);
         View imageToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.image_processing_layout, null);
+        View drawingToolbar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.drawing,null);
 
         tcl = (ConstraintLayout) toolBar.findViewById(R.id.toolbar_layout);
         scl = (ConstraintLayout) speechToolBar.findViewById(R.id.speech_toolbar);
         icl = (ConstraintLayout) imageToolBar.findViewById(R.id.image_proc_toolbar);
+        dcl = (ConstraintLayout) drawingToolbar.findViewById(R.id.drawing_layout);
     }
 
     private void setupKeyboard() {
@@ -98,7 +117,9 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         qwertyKeyboard = new Keyboard(this, R.xml.qwerty_layout);
         numberKeyboard = new Keyboard(this, R.xml.number_symbols_layout);
         symbolKeyboard = new Keyboard(this, R.xml.symbols_layout);
+        drawingKeyboard = new Keyboard(this, R.xml.drawing_layout);
         kv.setKeyboard(qwertyKeyboard);
+        kv.setPadding(0,0,0,8);
         kv.setOnKeyboardActionListener(this);
         kv.setPreviewEnabled(false);
         currentKeyboard = qwertyKeyboard;
@@ -165,6 +186,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnVoice = tcl.findViewById(R.id.btn_voice);
         btnImage = tcl.findViewById(R.id.btn_img);
         btnClipboard = tcl.findViewById(R.id.btn_clipboard);
+        btnDraw = tcl.findViewById(R.id.btn_draw);
         setListeners();
         return tcl;
     }
@@ -173,6 +195,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnVoice.setOnClickListener(this);
         btnImage.setOnClickListener(this);
         btnClipboard.setOnClickListener(this);
+        btnDraw.setOnClickListener(this);
     }
 
 
@@ -260,8 +283,76 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
             case R.id.btn_clipboard:
                 decodeImage(imageUri);
+                break;
+
+            case R.id.btn_draw:
+                draw();
+                break;
 
         }
+
+    }
+
+    private void draw(){
+        kv.setKeyboard(drawingKeyboard);
+        kv.setPadding(0,0,0,0);
+        setCandidatesView(dcl);
+        initalizeRecognition();
+        DigitalInkImplementation digitalInkImplementation = dcl.findViewById(R.id.drawing_canvas);
+        btnClassify = dcl.findViewById(R.id.btnClassify);
+        btnClear = dcl.findViewById(R.id.btnClear);
+        btnBack = dcl.findViewById(R.id.btn_arrow_left_draw);
+        btnClassify.setEnabled(false);
+        btnClassify.setVisibility(View.INVISIBLE);
+        btnClassify.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Ink ink = digitalInkImplementation.getInk();
+                DigitalInkRecognizer recognizer = DigitalInkRecognition.getClient(DigitalInkRecognizerOptions.builder(model).build());
+                recognizer.recognize(ink)
+                        .addOnSuccessListener(
+                                result -> getCurrentInputConnection().commitText(result.getCandidates().get(0).getText(), 1))
+                        .addOnFailureListener(
+                                e -> Log.e(TAG, "Error during recognition: " + e));
+            }
+        });
+
+        btnClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                digitalInkImplementation.clear();
+            }
+        });
+
+        btnBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                kv.setKeyboard(qwertyKeyboard);
+                kv.setPadding(0,0,0,8);
+
+                setCandidatesView(tcl);
+            }
+        });
+    }
+
+    private void initalizeRecognition(){
+        DigitalInkRecognitionModelIdentifier modelIdentifier;
+        try {
+            modelIdentifier = DigitalInkRecognitionModelIdentifier.fromLanguageTag("en-US");
+            model = DigitalInkRecognitionModel.builder(modelIdentifier).build();
+            remoteModelManager
+                    .download(model, new DownloadConditions.Builder().build())
+                    .addOnSuccessListener(aVoid -> {
+                        btnClassify.setEnabled(true);
+                        btnClassify.setVisibility(View.VISIBLE);
+                    })
+                    .addOnFailureListener(
+                            e -> Log.e(TAG, "Error while downloading a model: " + e));
+
+        } catch (MlKitException e) {
+            Log.e(TAG, "initalizeRecognition: ", e);
+        }
+
 
     }
 
