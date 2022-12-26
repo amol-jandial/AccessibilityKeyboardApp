@@ -4,6 +4,12 @@
 
 A single language keyboard that tries to implement some common features found in google keyboard or gBoard
 
+ ![](https://imgur.com/fpf1lmq.png)
+ ![](https://imgur.com/NcvyccW.png)
+ ![](https://imgur.com/5EJ1Qwy.png)
+ ![](https://imgur.com/17rc1Ke.png)
+ ![](https://imgur.com/9ioTFX9.png)
+
 ### Features Addded Currently
 
 - Different layouts for alphabets, numbers and symbols
