@@ -4,8 +4,10 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.inputmethodservice.InputMethodService;
 import android.net.Uri;
 import android.util.Log;
+import android.view.View;
 import android.view.inputmethod.InputConnection;
 
 import androidx.core.content.ContextCompat;
@@ -19,9 +21,12 @@ public class ImageImplementation {
     public static Uri image;
     private InputConnection inputConnection;
 
+
     ImageImplementation(Context context){
         this.context = context;
+
     }
+
 
     private void getImage(){
         Intent intent = new Intent(context, ImageGetterActivity.class);

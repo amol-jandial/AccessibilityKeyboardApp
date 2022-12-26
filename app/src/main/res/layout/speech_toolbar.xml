@@ -13,6 +13,8 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginStart="8dp"
+        android:visibility="invisible"
+        android:clickable="false"
         android:background="@drawable/arrow_left_blue"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/tv_speech"

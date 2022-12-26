@@ -52,11 +52,11 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     String pasteData = "";
     SharedPreferences prefs;
     View toolBar;
-    ConstraintLayout tcl, icl, scl, dcl;
+    ConstraintLayout tcl, icl, scl, dcl, ccl;
     private CustomKeyboardView kv;
     private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard, drawingKeyboard;
     private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard, btnDraw,
-    btnClassify, btnClear, btnBack;
+    btnClassify, btnClear, btnBack, btnSettings, btnArrowLeftToolbar, btnArrowLeftClipboard, btnArrowLeftDraw;
     private TextView speechTextView;
     private CandidateView mCandidateView;
     private boolean spaceAfterDot;
@@ -65,6 +65,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     private Uri imageUri = null;
     private RemoteModelManager remoteModelManager = RemoteModelManager.getInstance();
     private DigitalInkRecognitionModel model;
+    private ClipboardManager clipBoard;
 
 
 
@@ -82,19 +83,6 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         setupKeyboard();
         setupClipboard();
         setupPrefrences();
-        kv.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override
-            public void onViewAttachedToWindow(View v) {
-                
-            }
-
-            @Override
-            public void onViewDetachedFromWindow(View v) {
-                Log.d(TAG, "onViewDetachedFromWindow: ");
-                stopForeground(true);
-                stopSelf();
-            }
-        });
         return kv;
     }
 
@@ -105,11 +93,13 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         View speechToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.speech_toolbar, null);
         View imageToolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.image_processing_layout, null);
         View drawingToolbar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.drawing,null);
+        View clipboardToolbar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.wordbar, null);
 
         tcl = (ConstraintLayout) toolBar.findViewById(R.id.toolbar_layout);
         scl = (ConstraintLayout) speechToolBar.findViewById(R.id.speech_toolbar);
         icl = (ConstraintLayout) imageToolBar.findViewById(R.id.image_proc_toolbar);
         dcl = (ConstraintLayout) drawingToolbar.findViewById(R.id.drawing_layout);
+        ccl = (ConstraintLayout) clipboardToolbar.findViewById(R.id.wordsLayout);
     }
 
     private void setupKeyboard() {
@@ -126,7 +116,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     }
 
     private void setupClipboard() {
-        ClipboardManager clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clipBoard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         clipBoard.addPrimaryClipChangedListener(this);
     }
 
@@ -166,10 +156,21 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
         if (prefs.getBoolean("theme_blue", true)) {
             kv.setTheme("blue");
+            btnArrowLeftDraw.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
+            btnArrowLeftClipboard.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
+            btnArrowLeftToolbar.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
+
+
         } else if (prefs.getBoolean("theme_orange", false)) {
             kv.setTheme("orange");
+            btnArrowLeftDraw.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_orange));
+            btnArrowLeftClipboard.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_orange));
+            btnArrowLeftToolbar.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_orange));
         } else {
             kv.setTheme("blue");
+            btnArrowLeftDraw.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
+            btnArrowLeftClipboard.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
+            btnArrowLeftToolbar.setBackground(this.getResources().getDrawable(R.drawable.arrow_left_blue));
         }
 
         spaceAfterDot = prefs.getBoolean("auto_space", false);
@@ -187,6 +188,10 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnImage = tcl.findViewById(R.id.btn_img);
         btnClipboard = tcl.findViewById(R.id.btn_clipboard);
         btnDraw = tcl.findViewById(R.id.btn_draw);
+        btnSettings = tcl.findViewById(R.id.btn_settings);
+        btnArrowLeftClipboard = ccl.findViewById(R.id.btn_arrow_left_clip);
+        btnArrowLeftDraw = dcl.findViewById(R.id.btn_arrow_left_draw);
+        btnArrowLeftToolbar = tcl.findViewById(R.id.btn_arrow_left_toolbar);
         setListeners();
         return tcl;
     }
@@ -196,6 +201,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnImage.setOnClickListener(this);
         btnClipboard.setOnClickListener(this);
         btnDraw.setOnClickListener(this);
+        btnSettings.setOnClickListener(this);
     }
 
 
@@ -282,14 +288,48 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
                 break;
 
             case R.id.btn_clipboard:
-                decodeImage(imageUri);
+                startClipboard();
                 break;
 
             case R.id.btn_draw:
                 draw();
                 break;
 
+            case R.id.btn_settings:
+                openSettings();
+                break;
+
         }
+
+    }
+
+    private void openSettings(){
+        Intent intent = new Intent(this, ImePreferences.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+
+    }
+
+    private void startClipboard(){
+        setCandidatesView(ccl);
+        ClipData.Item item = clipBoard.getPrimaryClip().getItemAt(0);
+        btnClipboardPressed = ccl.findViewById(R.id.clipboard_button);
+        btnClipboardPressed.setText(item.getText().toString());
+        btnClipboardPressed.setVisibility(View.VISIBLE);
+
+        btnArrowLeftClipboard.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setCandidatesView(tcl);
+            }
+        });
+
+        btnClipboardPressed.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activateClipboard((AppCompatButton) v);
+            }
+        });
 
     }
 
@@ -301,7 +341,6 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         DigitalInkImplementation digitalInkImplementation = dcl.findViewById(R.id.drawing_canvas);
         btnClassify = dcl.findViewById(R.id.btnClassify);
         btnClear = dcl.findViewById(R.id.btnClear);
-        btnBack = dcl.findViewById(R.id.btn_arrow_left_draw);
         btnClassify.setEnabled(false);
         btnClassify.setVisibility(View.INVISIBLE);
         btnClassify.setOnClickListener(new View.OnClickListener() {
@@ -324,7 +363,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
             }
         });
 
-        btnBack.setOnClickListener(new View.OnClickListener() {
+        btnArrowLeftDraw.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 kv.setKeyboard(qwertyKeyboard);
@@ -375,13 +414,6 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
 
 
-    private void clipboard() {
-//        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-//        ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-//        Uri image = Uri.parse(item.getText().toString());
-        decodeImage(imageUri);
-    }
-
     private void decodeImage(Uri imageURI){
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         InputImage image;
@@ -420,14 +452,17 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         String text = (String) btn.getText();
         getCurrentInputConnection().commitText(text, 1);
         ClipData clip = ClipData.newPlainText("", "");
-        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboardManager.setPrimaryClip(clip);
+        clipBoard.setPrimaryClip(clip);
+        btn.setText("");
+        btn.setVisibility(View.INVISIBLE);
     }
 
     @Override
     public void onPrimaryClipChanged() {
         Log.d("clipboard", "onPrimaryClipChanged: ");
-//        clipboard();
+        if(!clipBoard.getPrimaryClip().getItemAt(0).getText().toString().equals("")){
+            startClipboard();
+        }
     }
 
     @Override

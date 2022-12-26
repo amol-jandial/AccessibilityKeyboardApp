@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <size android:width="14dp" android:height="14dp"/>
+            <solid android:color="@color/keyboard_enter_orange"/>
+        </shape>
+    </item>
+    <item android:drawable="@drawable/arrow_left_icon" android:gravity="center"/>
+</layer-list>

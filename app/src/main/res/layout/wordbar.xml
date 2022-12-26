@@ -5,8 +5,8 @@
     android:layout_width="match_parent"
     android:id="@+id/wordsLayout"
     android:background="@color/keyboard_background_blue"
-    android:padding="12dp"
-    android:layout_height="wrap_content"
+    android:padding="8dp"
+    android:layout_height="60dp"
     android:gravity="center"
     android:orientation="horizontal" >
 
@@ -30,8 +30,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
-
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_arrow_left_clip"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/arrow_left_blue"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
