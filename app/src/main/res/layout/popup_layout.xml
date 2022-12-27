@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/popup_keyboard_viewgroup"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popup_layout"
     android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <com.example.accessibilitykeyboardapp.CustomKeyboardView
-        android:id="@android:id/keyboardView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:keyTextColor="@color/white"
-        android:background="#00000000"
-        android:keyBackground="@drawable/popup_background"
-        android:keyTextSize="22sp"/>
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
 
-</LinearLayout>
+
+    
+    <View
+        android:id="@+id/outside_popup_btn"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/popup_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:padding="8dp"
+        android:layout_alignParentTop="true"
+        android:textSize="16sp"
+        android:background="@drawable/normal_key_background"
+        />
+</RelativeLayout>

@@ -12,12 +12,20 @@ import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.InputConnection;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
@@ -29,7 +37,8 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
     private Drawable npd;
     private String theme;
     private Keyboard keyboard;
-
+    private int height, width;
+    private AppCompatButton popupBtn;
 
 
     public CustomKeyboardView(Context context, AttributeSet attrs) {
@@ -49,13 +58,66 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         invalidateAllKeys();
     }
 
+    public void showPopup(InputConnection inputConnection, int primaryCode){
+        PopupClass popupClass = new PopupClass();
+        popupClass.showPopupWindow(this, inputConnection, primaryCode);
+    }
+
+    public class PopupClass{
+        public void showPopupWindow(final View view, InputConnection inputConnection, int primaryCode){
+            LayoutInflater inflater = (LayoutInflater) view.getContext().getSystemService(view.getContext().LAYOUT_INFLATER_SERVICE);
+            View popupView = inflater.inflate(R.layout.popup_layout, null);
+            View outside = popupView.findViewById(R.id.outside_popup_btn);
+            boolean focusable = false;
+            PopupWindow popupWindow = new PopupWindow(popupView, view.getWidth(), view.getHeight(), focusable);
+            popupWindow.setClippingEnabled(false);
+            popupBtn = popupView.findViewById(R.id.popup_btn);
+            List<Keyboard.Key> keys = getKeyboard().getKeys();
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            for(Keyboard.Key key : keys){
+                if(key.codes[0] == primaryCode){
+                    popupBtn.setText(key.popupCharacters.toString());
+                    params.setMargins(key.x + 10, key.y + (key.height/2), 0, 0);
+                    popupBtn.setLayoutParams(params);
+                    popupWindow.showAtLocation(view, Gravity.NO_GRAVITY, 0, 0);
+                }
+            }
+
+            popupBtn.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    inputConnection.commitText(popupBtn.getText().toString(), 1);
+                    popupWindow.dismiss();
+
+                }
+            });
+
+            outside.setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    popupWindow.dismiss();
+                    return true;
+                }
+            });
+
+//            view.setOnTouchListener(new OnTouchListener() {
+//                @Override
+//                public boolean onTouch(View v, MotionEvent event) {
+//                    popupWindow.dismiss();
+//                    return true;
+//                }
+//            });
+        }
+    }
+
 
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         Paint paint = new Paint();
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(30);
+        paint.setTextSize(20);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         paint.setColor(ResourcesCompat.getColor(getResources(), R.color.number_on_top, null));
         List<Keyboard.Key> keys = getKeyboard().getKeys();
@@ -157,7 +219,9 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
                         key.codes[0] == (Integer.parseInt("u006F".substring(2), 16)) ||
                         key.codes[0] == (Integer.parseInt("u0070".substring(2), 16))
                 ) {
-                    canvas.drawText(key.popupCharacters.toString(), key.x + (key.width - 15), key.y + 25, paint);
+                    width = key.width;
+                    height = key.height;
+                    canvas.drawText(key.popupCharacters.toString(), key.x + (key.width - 10), key.y + 20, paint);
                 }
             }
 
@@ -180,22 +244,21 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
     }
 
-    public int publishText(InputConnection ic, int primaryCode, Keyboard keyboard,
-                           boolean spaceAfterDot){
-        char code = (char)primaryCode;
-        if((Character.isLetter(code) && isShifted)){
-            code = Character.toUpperCase(code);
-        }
-        commitText(ic, String.valueOf(code), 1);
 
-        if(primaryCode == 46 && spaceAfterDot){
-            ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SPACE));
-        }
-        if(Character.isLetter(code)){
-            Log.d("shifting", "letter pressed");
-            return 1;
-        }
-        return -1;
+
+    public void publishText(InputConnection ic, int primaryCode,
+                            boolean spaceAfterDot){
+
+            char code = (char)primaryCode;
+            if((Character.isLetter(code) && isShifted)){
+                code = Character.toUpperCase(code);
+            }
+            commitText(ic, String.valueOf(code), 1);
+
+            if(primaryCode == 46 && spaceAfterDot){
+                ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SPACE));
+            }
+
     }
 
     private void commitText(InputConnection ic, String code, int pos){
