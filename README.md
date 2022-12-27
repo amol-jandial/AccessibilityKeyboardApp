@@ -19,6 +19,7 @@ A single language keyboard that tries to implement some common features found in
 - Fully working clipboard
 - Voice to text implementation
 - Bare minimum popup layout
+- Improved popup layout
 
 
 ### Features to add
@@ -26,7 +27,7 @@ A single language keyboard that tries to implement some common features found in
 - Words Suggestion
 - Translation to various languages
 - populate settings with more options
-- Improve popup layout
+- Ripples on key presses
 - Clean up the code
 
 
