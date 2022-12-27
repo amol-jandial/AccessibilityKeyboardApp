@@ -87,7 +87,7 @@
         android:id="@+id/btn_more"
         android:layout_width="25dp"
         android:layout_height="25dp"
-        android:background="@drawable/more_icon"
+        android:background="@drawable/image_labeling_icon"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/btn_voice"
         app:layout_constraintHorizontal_bias="0.5"

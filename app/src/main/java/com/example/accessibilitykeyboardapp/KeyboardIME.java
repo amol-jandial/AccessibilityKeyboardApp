@@ -37,12 +37,18 @@ import com.google.mlkit.vision.digitalink.DigitalInkRecognitionModelIdentifier;
 import com.google.mlkit.vision.digitalink.DigitalInkRecognizer;
 import com.google.mlkit.vision.digitalink.DigitalInkRecognizerOptions;
 import com.google.mlkit.vision.digitalink.Ink;
+import com.google.mlkit.vision.label.ImageLabel;
+import com.google.mlkit.vision.label.ImageLabeler;
+import com.google.mlkit.vision.label.ImageLabelerOptionsBase;
+import com.google.mlkit.vision.label.ImageLabeling;
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class KeyboardIME extends InputMethodService implements KeyboardView.OnKeyboardActionListener,
@@ -57,7 +63,8 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     private CustomKeyboardView kv;
     private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard, drawingKeyboard;
     private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard, btnDraw,
-    btnClassify, btnClear, btnBack, btnSettings, btnArrowLeftToolbar, btnArrowLeftClipboard, btnArrowLeftDraw;
+    btnClassify, btnClear, btnBack, btnSettings, btnArrowLeftToolbar, btnArrowLeftClipboard, btnArrowLeftDraw,
+            btnImageLabeling;
     private TextView speechTextView;
     private CandidateView mCandidateView;
     private boolean spaceAfterDot;
@@ -69,7 +76,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     private ClipboardManager clipBoard;
     private long timePressed;
     private boolean isKeyHeld = false;
-
+    private int starter;
 
 
     @Override
@@ -130,7 +137,12 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     public void onStartInputView(EditorInfo info, boolean restarting) {
         Log.d(TAG, "onStartInputView: "+ btnVoice.getId());
         if(imageUri != null){
-            decodeImage(imageUri);
+            if(starter == 1){
+                labelImage(imageUri);
+            }
+            else if(starter == 0){
+                decodeImage(imageUri);
+            }
         }
         setupPreferencesSettings();
     }
@@ -138,6 +150,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         imageUri = intent.getParcelableExtra("imageURI");
+        starter = intent.getIntExtra("starter", -1);
         setCandidatesView(icl);
         stopSelf();
         //Start a background thread and while that thread is running change candidate view to processing...
@@ -193,6 +206,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnArrowLeftClipboard = ccl.findViewById(R.id.btn_arrow_left_clip);
         btnArrowLeftDraw = dcl.findViewById(R.id.btn_arrow_left_draw);
         btnArrowLeftToolbar = tcl.findViewById(R.id.btn_arrow_left_toolbar);
+        btnImageLabeling = tcl.findViewById(R.id.btn_more);
         setListeners();
         return tcl;
     }
@@ -203,6 +217,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnClipboard.setOnClickListener(this);
         btnDraw.setOnClickListener(this);
         btnSettings.setOnClickListener(this);
+        btnImageLabeling.setOnClickListener(this);
     }
 
 
@@ -240,12 +255,13 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
                 setCandidatesView(tcl);
                 break;
 
-            case R.id.btn_img:
-                Intent stopServiceIntent = new Intent(getApplicationContext(), KeyboardIME.class);
-                stopServiceIntent.addCategory(KeyboardIME.TAG);
-                stopService(stopServiceIntent);
+            case R.id.btn_more:
                 imageImplementation.checkPermissions();
-                imageImplementation.start(getCurrentInputConnection());
+                imageImplementation.start(getCurrentInputConnection(), 1);
+
+            case R.id.btn_img:
+                imageImplementation.checkPermissions();
+                imageImplementation.start(getCurrentInputConnection(), 0);
                 break;
 
             case R.id.btn_clipboard:
@@ -374,10 +390,39 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         }
 
     }
+    
+    private void labelImage(Uri imageURI){
+        Log.d(TAG, "labelImage: ");
+        ImageLabelerOptions imageLabelerOptions =
+                new ImageLabelerOptions.Builder().setConfidenceThreshold(0.8f).build();
+
+        ImageLabeler labeler = ImageLabeling.getClient(imageLabelerOptions);
+        InputImage image;
+        try{
+            image = InputImage.fromFilePath(this, imageURI);
+            labeler.process(image).addOnSuccessListener(new OnSuccessListener<List<ImageLabel>>() {
+                @Override
+                public void onSuccess(List<ImageLabel> imageLabels) {
+                    getCurrentInputConnection().commitText(imageLabels.get(0).getText().toString(), 1);
+                    setCandidatesView(tcl);
+                    imageUri = null;
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e(TAG, "onFailure: ", e);
+                }
+            });
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+
+    }
 
 
 
     private void decodeImage(Uri imageURI){
+        Log.d(TAG, "decodeImage: ");
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         InputImage image;
         try{

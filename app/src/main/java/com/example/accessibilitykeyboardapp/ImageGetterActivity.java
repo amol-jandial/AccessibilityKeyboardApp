@@ -34,11 +34,13 @@ public class ImageGetterActivity extends AppCompatActivity {
     private Context context;
     private ActivityResultLauncher<Intent> intentActivityResultLauncher;
     public static final int PICK_IMAGE = 1;
+    private int starter;
 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        starter = getIntent().getIntExtra("starter", -1);
         getImage();
     }
 
@@ -61,6 +63,7 @@ public class ImageGetterActivity extends AppCompatActivity {
                     image =  data.getData();
                     Intent serviceIntent = new Intent(this, KeyboardIME.class);
                     serviceIntent.putExtra("imageURI", image);
+                    serviceIntent.putExtra("starter", starter);
                     this.startService(serviceIntent);
 //                    ClipData clip = ClipData.newPlainText("", image.toString());
 //                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);

@@ -28,9 +28,10 @@ public class ImageImplementation {
     }
 
 
-    private void getImage(){
+    private void getImage(int starter){
         Intent intent = new Intent(context, ImageGetterActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("starter", starter);
         context.startActivity(intent);
 
     }
@@ -43,9 +44,9 @@ public class ImageImplementation {
         }
     }
 
-    public void start(InputConnection inputConnection){
+    public void start(InputConnection inputConnection, int starter){
         this.inputConnection = inputConnection;
-        getImage();
+        getImage(starter);
     }
 
 }
