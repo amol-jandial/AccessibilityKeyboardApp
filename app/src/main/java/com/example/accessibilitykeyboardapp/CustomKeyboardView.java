@@ -1,13 +1,16 @@
 package com.example.accessibilitykeyboardapp;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.RippleDrawable;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
@@ -32,13 +35,14 @@ import androidx.core.content.res.ResourcesCompat;
 
 import java.util.List;
 
-public class CustomKeyboardView extends KeyboardView implements View.OnTouchListener {
+public class CustomKeyboardView extends KeyboardView {
     private boolean isShifted = false;
     private Drawable npd;
     private String theme;
     private Keyboard keyboard;
     private int height, width;
     private AppCompatButton popupBtn;
+
 
 
     public CustomKeyboardView(Context context, AttributeSet attrs) {
@@ -58,10 +62,14 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         invalidateAllKeys();
     }
 
+
+
     public void showPopup(InputConnection inputConnection, int primaryCode){
         PopupClass popupClass = new PopupClass();
         popupClass.showPopupWindow(this, inputConnection, primaryCode);
-    }
+        }
+
+
 
     public class PopupClass{
         public void showPopupWindow(final View view, InputConnection inputConnection, int primaryCode){
@@ -112,6 +120,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
     }
 
 
+    @SuppressLint("DrawAllocation")
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -121,12 +130,16 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         paint.setColor(ResourcesCompat.getColor(getResources(), R.color.number_on_top, null));
         List<Keyboard.Key> keys = getKeyboard().getKeys();
+
+
+
         for(Keyboard.Key key : keys) {
             if (key.codes[0] == -1) {
                 if (isShifted) {
                     if (theme.equals("blue")) {
 
                         npd = (Drawable) getContext().getResources().getDrawable(R.drawable.shift_on_blue);
+
                     } else if (theme.equals("orange")) {
                         npd = (Drawable) getContext().getResources().getDrawable(R.drawable.shift_on_orange);
                     }
@@ -225,6 +238,7 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
                 }
             }
 
+
     }
 
 
@@ -265,8 +279,4 @@ public class CustomKeyboardView extends KeyboardView implements View.OnTouchList
         ic.commitText(code,pos);
     }
 
-    @Override
-    public boolean onTouch(View v, MotionEvent event) {
-        return false;
-    }
 }

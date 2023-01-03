@@ -20,4 +20,5 @@
     <color name="keyboard_enter_blue">#FFA6C8FF</color>
     <color name="keyboard_enter_orange">#FFFF786B</color>
     <color name="vertical_line">#FFCFCDD1</color>
+    <color name="keyboard_ripple">#AA1B1B1D</color>
 </resources>

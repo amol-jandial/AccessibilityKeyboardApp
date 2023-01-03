@@ -3,14 +3,13 @@ package com.example.accessibilitykeyboardapp;
 import android.app.Application;
 import android.net.Uri;
 
-public class GlobalVariables extends Application {
-    private Uri imageUri;
+public class GlobalVariables {
 
-    public Uri getImageUri() {
-        return imageUri;
+    public enum Keyboards{
+        qwerty,
+        number,
+        symbol,
+        drawing
     }
 
-    public void setImageUri(Uri imageUri) {
-        this.imageUri = imageUri;
-    }
 }

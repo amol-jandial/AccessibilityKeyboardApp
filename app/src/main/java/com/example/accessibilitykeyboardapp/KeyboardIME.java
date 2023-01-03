@@ -48,6 +48,7 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +62,8 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     View toolBar;
     ConstraintLayout tcl, icl, scl, dcl, ccl;
     private CustomKeyboardView kv;
-    private Keyboard qwertyKeyboard, numberKeyboard, symbolKeyboard, currentKeyboard, drawingKeyboard;
+    private Keyboard currentKeyboard;
+    private List<Keyboard> keyboards = new ArrayList<Keyboard>();
     private AppCompatButton btnClipboardPressed, btnVoice, btnVoicePressed, btnImage, btnClipboard, btnDraw,
     btnClassify, btnClear, btnBack, btnSettings, btnArrowLeftToolbar, btnArrowLeftClipboard, btnArrowLeftDraw,
             btnImageLabeling;
@@ -87,14 +89,17 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     @Override
     public View onCreateInputView() {
-        Log.d(TAG, "onCreateInputView: ");
         setupKeyboard();
         setupClipboard();
         setupPrefrences();
         return kv;
     }
 
-    
+    public void commitText(String text){
+        getCurrentInputConnection().commitText(text, 1);
+    }
+
+
 
     private void setupCandidateViews(){
         View toolBar = (ConstraintLayout) getLayoutInflater().inflate(R.layout.toolbar, null);
@@ -112,15 +117,16 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
 
     private void setupKeyboard() {
         kv = (CustomKeyboardView) getLayoutInflater().inflate(R.layout.keyboard_view, null);
-        qwertyKeyboard = new Keyboard(this, R.xml.qwerty_layout);
-        numberKeyboard = new Keyboard(this, R.xml.number_symbols_layout);
-        symbolKeyboard = new Keyboard(this, R.xml.symbols_layout);
-        drawingKeyboard = new Keyboard(this, R.xml.drawing_layout);
-        kv.setKeyboard(qwertyKeyboard);
+        keyboards.add(new Keyboard(this, R.xml.qwerty_layout));
+        keyboards.add(new Keyboard(this, R.xml.number_symbols_layout));
+        keyboards.add(new Keyboard(this, R.xml.symbols_layout));
+        keyboards.add(new Keyboard(this, R.xml.drawing_layout));
+
+        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal()));
         kv.setPadding(0,0,0,8);
         kv.setOnKeyboardActionListener(this);
         kv.setPreviewEnabled(false);
-        currentKeyboard = qwertyKeyboard;
+        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal());
     }
 
     private void setupClipboard() {
@@ -233,7 +239,63 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     @Override
     public void onKey(int primaryCode, int[] keyCodes) {
 
+        InputConnection ic = getCurrentInputConnection();
 
+        timePressed = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - timePressed;
+        Log.d(TAG, "onKey: "+ timePressed);
+        if(timePressed >= 2 && (primaryCode == (Integer.parseInt("u0071".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0077".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0065".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0072".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0074".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0079".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0075".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0069".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u006F".substring(2), 16)) ||
+                primaryCode == (Integer.parseInt("u0070".substring(2), 16)))){
+            isKeyHeld = true;
+            kv.showPopup(ic, primaryCode);
+        }else{
+            switch (primaryCode) {
+                case Keyboard.KEYCODE_DELETE:
+                    kv.deleteText(ic);
+                    break;
+                case Keyboard.KEYCODE_SHIFT:
+                    kv.setShifted(currentKeyboard);
+                    break;
+                case Keyboard.KEYCODE_DONE:
+                    kv.enter(ic);
+                    break;
+
+                default:
+
+                    if (primaryCode == 10001) {
+                        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.number.ordinal()));
+                        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.number.ordinal());
+                        kv.invalidateAllKeys();
+
+                    } else if (primaryCode == 10002) {
+                        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal()));
+                        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal());
+                        kv.invalidateAllKeys();
+
+
+                    } else if (primaryCode == 10003) {
+                        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.symbol.ordinal()));
+                        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.symbol.ordinal());
+                        kv.invalidateAllKeys();
+
+
+                    } else if (primaryCode == 10005) {
+                        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.number.ordinal()));
+                        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.number.ordinal());
+                        kv.invalidateAllKeys();
+                    }else{
+                        kv.publishText(ic, primaryCode, spaceAfterDot);
+                    }
+            }
+
+        }
 
     }
 
@@ -311,8 +373,8 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     }
 
     private void draw(){
-        kv.setKeyboard(drawingKeyboard);
-        currentKeyboard = drawingKeyboard;
+        kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.drawing.ordinal()));
+        currentKeyboard = keyboards.get(GlobalVariables.Keyboards.drawing.ordinal());
         kv.setPadding(0,0,0,0);
         setCandidatesView(dcl);
         initalizeRecognition();
@@ -344,8 +406,8 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         btnArrowLeftDraw.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                kv.setKeyboard(qwertyKeyboard);
-                currentKeyboard = qwertyKeyboard;
+                kv.setKeyboard(keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal()));
+                currentKeyboard = keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal());
                 kv.setPadding(0,0,0,8);
 
                 setCandidatesView(tcl);
@@ -390,11 +452,11 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
         }
 
     }
-    
+
     private void labelImage(Uri imageURI){
         Log.d(TAG, "labelImage: ");
         ImageLabelerOptions imageLabelerOptions =
-                new ImageLabelerOptions.Builder().setConfidenceThreshold(0.8f).build();
+                new ImageLabelerOptions.Builder().setConfidenceThreshold(0.95f).build();
 
         ImageLabeler labeler = ImageLabeling.getClient(imageLabelerOptions);
         InputImage image;
@@ -468,7 +530,7 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     @Override
     public void onPrimaryClipChanged() {
         Log.d("clipboard", "onPrimaryClipChanged: ");
-        if(!clipBoard.getPrimaryClip().getItemAt(0).getText().toString().equals("") && currentKeyboard == qwertyKeyboard){
+        if(!clipBoard.getPrimaryClip().getItemAt(0).getText().toString().equals("") && currentKeyboard == keyboards.get(GlobalVariables.Keyboards.qwerty.ordinal())){
             startClipboard();
         }
     }
@@ -501,56 +563,28 @@ public class KeyboardIME extends InputMethodService implements KeyboardView.OnKe
     @Override
     public void onPress(int primaryCode) {
         timePressed = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+        switch (primaryCode) {
+            case Keyboard.KEYCODE_DELETE:
+            case Keyboard.KEYCODE_DONE:
+            case Keyboard.KEYCODE_SHIFT:
+                kv.setPreviewEnabled(false);
+                break;
+
+            default:
+
+                if (primaryCode == 10001 || primaryCode == 10002 || primaryCode == 10003 || primaryCode == 10005 || primaryCode == 32) {
+                    kv.setPreviewEnabled(false);
+                }
+                else{
+                    kv.setPreviewEnabled(true);
+                }
+        }
+
     }
 
     @Override
     public void onRelease(int primaryCode) {
-        InputConnection ic = getCurrentInputConnection();
 
-        timePressed = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - timePressed;
-        if(timePressed >= 2){
-            isKeyHeld = true;
-            kv.showPopup(ic, primaryCode);
-        }else{
-            switch (primaryCode) {
-                case Keyboard.KEYCODE_DELETE:
-                    kv.deleteText(ic);
-                    break;
-                case Keyboard.KEYCODE_SHIFT:
-                    kv.setShifted(currentKeyboard);
-                    break;
-                case Keyboard.KEYCODE_DONE:
-                    kv.enter(ic);
-                    break;
-
-                default:
-
-                    if (primaryCode == 10001) {
-                        kv.setKeyboard(numberKeyboard);
-                        currentKeyboard = numberKeyboard;
-                        kv.invalidateAllKeys();
-
-                    } else if (primaryCode == 10002) {
-                        kv.setKeyboard(qwertyKeyboard);
-                        currentKeyboard = qwertyKeyboard;
-                        kv.invalidateAllKeys();
-
-
-                    } else if (primaryCode == 10003) {
-                        kv.setKeyboard(symbolKeyboard);
-                        currentKeyboard = symbolKeyboard;
-                        kv.invalidateAllKeys();
-
-
-                    } else if (primaryCode == 10005) {
-                        kv.setKeyboard(numberKeyboard);
-                        currentKeyboard = numberKeyboard;
-                        kv.invalidateAllKeys();
-                    }else{
-                        kv.publishText(ic, primaryCode, spaceAfterDot);
-                    }
-            }
-        }
     }
 
 }

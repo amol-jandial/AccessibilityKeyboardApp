@@ -7,6 +7,7 @@
     android:layout_alignParentBottom="true"
     android:keyBackground="@drawable/normal_key_background"
     android:keyTextColor="@color/keyboard_text"
+    android:keyPreviewLayout="@layout/preview_layout"
     android:backgroundTint="@color/keyboard_background_blue"
     android:background="@color/keyboard_background_blue"
     >
